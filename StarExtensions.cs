@@ -14,5 +14,25 @@ namespace Data.Utilities
             return new Tuple<int, int, int>(full,half,empty);
         }
         
+        // using Font-Awesome-5
+        public static HtmlString StarScore(this int score, int totalStar = 5)
+        {
+            var st = "";
+            int i;
+            var stars = score.StartCount(star: totalStar);
+            for (i = 0; i < stars.Item1; i++)
+            {
+                st += "<i class='fas fa-star'></i>";
+            }
+            for (i = 0; i < stars.Item2; i++)
+            {
+                st += "<i class='fas fa-star-half-alt'></i>";
+            }
+            for (i = 0; i < stars.Item3; i++)
+            {
+                st += "<i class='far fa-star></i>";
+            }
+            return new HtmlString(st);
+        }
     }
 }
