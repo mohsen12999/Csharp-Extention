@@ -22,15 +22,15 @@ namespace Data.Utilities
             var stars = score.StartCount(star: totalStar);
             for (i = 0; i < stars.Item1; i++)
             {
-                st += "<i class='fas fa-star'></i>";
+                st += "<i class=\"fas fa-star\"></i>";
             }
             for (i = 0; i < stars.Item2; i++)
             {
-                st += "<i class='fas fa-star-half-alt'></i>";
+                st += "<i class=\"fas fa-star-half-alt\"></i>";
             }
             for (i = 0; i < stars.Item3; i++)
             {
-                st += "<i class='far fa-star></i>";
+                st += "<i class=\"far fa-star\"></i>";
             }
             return new HtmlString(st);
         }
