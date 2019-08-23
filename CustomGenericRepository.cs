@@ -18,50 +18,32 @@ namespace Data.Services
             _dbset = context.Set<TEntity>();
         }
 
-        public virtual IEnumerable<TEntity> Get
-            (Expression<Func<TEntity, bool>> where = null, Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderby = null, string includes = "")
+        protected virtual IQueryable<TEntity> GetQueryable(
+            Expression<Func<TEntity, bool>> filter = null,
+            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
+            string includeProperties = null,
+            int? skip = null,
+            int? take = null)
         {
+            includeProperties = includeProperties ?? string.Empty;
             IQueryable<TEntity> query = _dbset;
 
-            if (where != null)
+            if (filter != null)
             {
-                query = query.Where(where);
-            }
-            if (orderby != null)
-            {
-                query = orderby(query);
-            }
-            if (includes != "")
-            {
-                foreach (var include in includes.Split(","))
-                {
-                    query = query.Include(include);
-                }
+                query = query.Where(filter);
             }
 
-            return query.ToList();
-        }
+            foreach (var includeProperty in includeProperties.Split
+                (new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                query = query.Include(includeProperty);
+            }
 
-        public virtual Task<List<TEntity>> GetAsync
-            (Expression<Func<TEntity, bool>> where = null, Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderby = null, string includes = "", int? skip = null, int? take = null)//, List<Expression<Func<TEntity, object>>> expressions=null)
-        {
-            IQueryable<TEntity> query = _dbset;
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
 
-            if (where != null)
-            {
-                query = query.Where(where);
-            }
-            if (orderby != null)
-            {
-                query = orderby(query);
-            }
-            if (includes != "")
-            {
-                foreach (var include in includes.Split(","))
-                {
-                    query = query.Include(include);
-                }
-            }
             if (skip.HasValue)
             {
                 query = query.Skip(skip.Value);
@@ -72,15 +54,49 @@ namespace Data.Services
                 query = query.Take(take.Value);
             }
 
-
-            return query.AsNoTracking().ToListAsync();
+            return query;
         }
 
-
-
-        public virtual Task<TEntity> GetById(object id)
+        public virtual Task<List<TEntity>> Get
+        (Expression<Func<TEntity, bool>> filter = null,
+            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
+            string includes = null,
+            int? skip = null,
+            int? take = null) //, List<Expression<Func<TEntity, object>>> expressions=null)
         {
-            return _dbset.FindAsync(id);
+            return GetQueryable(filter, orderBy, includes, skip, take).AsNoTracking().ToList();
+        }
+
+        public virtual Task<List<TEntity>> GetAsync
+        (Expression<Func<TEntity, bool>> filter = null,
+            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
+            string includes = null,
+            int? skip = null,
+            int? take = null) //, List<Expression<Func<TEntity, object>>> expressions=null)
+        {
+            return GetQueryable(filter, orderBy, includes, skip, take).AsNoTracking().ToListAsync();
+        }
+
+                public virtual Task<TEntity> GetSingleAsync(Expression<Func<TEntity, bool>> filter = null,
+            string includeProperties = null)
+        {
+            return GetQueryable(filter, null, includeProperties).SingleOrDefaultAsync();
+        }
+
+        public virtual Task<TEntity> GetFirstAsync(Expression<Func<TEntity, bool>> filter = null,
+            string includeProperties = null)
+        {
+            return GetQueryable(filter, null, includeProperties).FirstOrDefaultAsync();
+        }
+
+        public virtual Task<int> CountAsync(Expression<Func<TEntity, bool>> filter = null)
+        {
+            return GetQueryable(filter).CountAsync();
+        }
+
+        public virtual Task<bool> IsExistAsync(Expression<Func<TEntity, bool>> filter = null)
+        {
+            return GetQueryable(filter).AnyAsync();
         }
 
         public virtual void Insert(TEntity entity)
@@ -94,30 +110,20 @@ namespace Data.Services
             _context.Entry(entity).State = EntityState.Modified;
         }
 
+        public virtual void Delete(object id)
+        {
+            var entity = GetByIdAsync(id);
+            Delete(entity);
+        }
+
         public virtual void Delete(TEntity entity)
         {
             if (_context.Entry(entity).State == EntityState.Detached)
             {
                 _dbset.Attach(entity);
             }
+
             _dbset.Remove(entity);
-        }
-
-        public virtual void Delete(object id)
-        {
-            var entity = GetById(id);
-            Delete(entity);
-        }
-
-        public virtual Task<int> CountAsync(Expression<Func<TEntity, bool>> where = null)
-        {
-            IQueryable<TEntity> query = _dbset;
-            if (where != null)
-            {
-                query = query.Where(where);
-            }
-
-            return query.CountAsync();
         }
 
         public virtual async Task<TEntity> InsertAndGet(TEntity entity)
@@ -131,6 +137,125 @@ namespace Data.Services
         {
             await _dbset.AddRangeAsync(entities);
         }
+
+        public virtual void DeleteRange(IEnumerable<TEntity> entities)
+        {
+            _dbset.RemoveRange(entities);
+        }
+
+        // public virtual IEnumerable<TEntity> Get
+        //     (Expression<Func<TEntity, bool>> where = null, Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderby = null, string includes = "")
+        // {
+        //     IQueryable<TEntity> query = _dbset;
+
+        //     if (where != null)
+        //     {
+        //         query = query.Where(where);
+        //     }
+        //     if (orderby != null)
+        //     {
+        //         query = orderby(query);
+        //     }
+        //     if (includes != "")
+        //     {
+        //         foreach (var include in includes.Split(","))
+        //         {
+        //             query = query.Include(include);
+        //         }
+        //     }
+
+        //     return query.ToList();
+        // }
+
+        // public virtual Task<List<TEntity>> GetAsync
+        //     (Expression<Func<TEntity, bool>> where = null, Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderby = null, string includes = "", int? skip = null, int? take = null)//, List<Expression<Func<TEntity, object>>> expressions=null)
+        // {
+        //     IQueryable<TEntity> query = _dbset;
+
+        //     if (where != null)
+        //     {
+        //         query = query.Where(where);
+        //     }
+        //     if (orderby != null)
+        //     {
+        //         query = orderby(query);
+        //     }
+        //     if (includes != "")
+        //     {
+        //         foreach (var include in includes.Split(","))
+        //         {
+        //             query = query.Include(include);
+        //         }
+        //     }
+        //     if (skip.HasValue)
+        //     {
+        //         query = query.Skip(skip.Value);
+        //     }
+
+        //     if (take.HasValue)
+        //     {
+        //         query = query.Take(take.Value);
+        //     }
+
+
+        //     return query.AsNoTracking().ToListAsync();
+        // }
+
+
+
+        // public virtual Task<TEntity> GetById(object id)
+        // {
+        //     return _dbset.FindAsync(id);
+        // }
+
+        // public virtual void Insert(TEntity entity)
+        // {
+        //     _dbset.AddAsync(entity);
+        // }
+
+        // public virtual void Update(TEntity entity)
+        // {
+        //     _dbset.Attach(entity);
+        //     _context.Entry(entity).State = EntityState.Modified;
+        // }
+
+        // public virtual void Delete(TEntity entity)
+        // {
+        //     if (_context.Entry(entity).State == EntityState.Detached)
+        //     {
+        //         _dbset.Attach(entity);
+        //     }
+        //     _dbset.Remove(entity);
+        // }
+
+        // public virtual void Delete(object id)
+        // {
+        //     var entity = GetById(id);
+        //     Delete(entity);
+        // }
+
+        // public virtual Task<int> CountAsync(Expression<Func<TEntity, bool>> where = null)
+        // {
+        //     IQueryable<TEntity> query = _dbset;
+        //     if (where != null)
+        //     {
+        //         query = query.Where(where);
+        //     }
+
+        //     return query.CountAsync();
+        // }
+
+        // public virtual async Task<TEntity> InsertAndGet(TEntity entity)
+        // {
+        //     await _dbset.AddAsync(entity);
+        //     await _context.SaveChangesAsync();
+        //     return entity;
+        // }
+
+        // public virtual async Task InsertRange(IEnumerable<TEntity> entities)
+        // {
+        //     await _dbset.AddRangeAsync(entities);
+        // }
 
         // better to make it in unit of work
         //public virtual void Save()
