@@ -57,16 +57,6 @@ namespace Data.Services
             return query;
         }
 
-        public virtual Task<List<TEntity>> Get
-        (Expression<Func<TEntity, bool>> filter = null,
-            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
-            string includes = null,
-            int? skip = null,
-            int? take = null) //, List<Expression<Func<TEntity, object>>> expressions=null)
-        {
-            return GetQueryable(filter, orderBy, includes, skip, take).AsNoTracking().ToList();
-        }
-
         public virtual Task<List<TEntity>> GetAsync
         (Expression<Func<TEntity, bool>> filter = null,
             Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
